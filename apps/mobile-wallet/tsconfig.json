@@ -4,5 +4,5 @@
     "jsx": "react-jsx",
     "lib": ["ES2022", "DOM"]
   },
-  "include": ["src/index.ts", "src/components", "src/screens"]
+  "include": ["src/index.ts", "src/components", "src/screens", "src/navigation"]
 }

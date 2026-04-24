@@ -5,3 +5,5 @@ export type {
   Transaction,
   TransactionHistoryAdapter,
 } from './screens/history/types';
+export { OnboardingNavigator, OnboardingNavigatorTestHarness } from './navigation';
+export type { OnboardingRoute, OnboardingFlow } from './screens/onboarding/types';
