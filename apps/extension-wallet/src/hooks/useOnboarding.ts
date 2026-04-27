@@ -1,5 +1,12 @@
 import { useState, useCallback } from 'react';
-import { encryptSecretKey, validatePasswordStrength } from '@ancore/crypto';
+import { createStorageAdapter, SecureStorageManager } from '@ancore/core-sdk';
+import {
+  deriveKeypairFromMnemonic,
+  encryptSecretKey,
+  generateMnemonic as generateCryptoMnemonic,
+  validateMnemonicForStellar,
+  validatePasswordStrength,
+} from '@ancore/crypto';
 import { Keypair } from '@stellar/stellar-sdk';
 import { StellarClient } from '@ancore/stellar';
 import type { Network } from '@ancore/types';
@@ -86,15 +93,27 @@ const DEFAULT_STATE: OnboardingState = {
 };
 
 /**
- * Storage keys for persistence
+ * Shared secure storage manager for onboarding.
  */
-const WALLET_STATE_KEY = 'walletState';
-const ACCOUNTS_KEY = 'accounts';
+let onboardingStorageManager: SecureStorageManager | null = null;
+
+export function getOnboardingStorageManager(): SecureStorageManager {
+  if (!onboardingStorageManager) {
+    onboardingStorageManager = new SecureStorageManager(createStorageAdapter());
+  }
+
+  return onboardingStorageManager;
+}
+
+export function resetOnboardingStorageManager(): void {
+  onboardingStorageManager?.lock();
+  onboardingStorageManager = null;
+}
 
 /**
  * Generate a random 12-word mnemonic using crypto
  */
-function generateMnemonic(): string {
+function _generateMnemonic(): string {
   // Use Web Crypto API to generate entropy
   const entropy = new Uint8Array(16);
   crypto.getRandomValues(entropy);
@@ -2379,25 +2398,8 @@ function generateMnemonic(): string {
   return indices.map((i) => words[i] || words[i % words.length]).join(' ');
 }
 
-/**
- * Derive a keypair from mnemonic
- */
-function deriveKeypair(mnemonic: string): Keypair {
-  // In production, use bip39 to derive seed, then derive ed25519 keypair
-  // For this implementation, we'll use a deterministic derivation
-  const seed = mnemonic.split(' ').reduce((acc, word, i) => {
-    return acc + word.charCodeAt(0) * (i + 1);
-  }, 0);
-
-  const secretArray = new Uint8Array(32);
-  const seedStr = String(seed);
-  for (let i = 0; i < 32; i++) {
-    secretArray[i] = seedStr.charCodeAt(i % seedStr.length) ^ (seed + i);
-  }
-
-  // Convert to Buffer for Stellar SDK
-  const buffer = Buffer.from(secretArray);
-  return Keypair.fromRawEd25519Seed(buffer);
+export function deriveOnboardingKeypair(mnemonic: string): Keypair {
+  return deriveKeypairFromMnemonic(mnemonic, 0);
 }
 
 /**
@@ -2466,7 +2468,7 @@ export function useOnboarding() {
    * Generate a new mnemonic
    */
   const generateMnemonicHandler = useCallback(() => {
-    const mnemonic = generateMnemonic();
+    const mnemonic = generateCryptoMnemonic();
     setState((prev: OnboardingState) => ({ ...prev, mnemonic, step: 'generate' }));
   }, []);
 
@@ -2498,6 +2500,13 @@ export function useOnboarding() {
   const encryptMnemonic = useCallback(
     async (password: string): Promise<EncryptedSecretKeyPayload | null> => {
       if (!state.mnemonic) return null;
+      if (!validateMnemonicForStellar(state.mnemonic)) {
+        setState((prev: OnboardingState) => ({
+          ...prev,
+          error: 'Invalid mnemonic generated',
+        }));
+        return null;
+      }
 
       try {
         const encrypted = await encryptSecretKey(state.mnemonic, password);
@@ -2525,52 +2534,46 @@ export function useOnboarding() {
         return null;
       }
 
+      if (!state.password) {
+        setState((prev: OnboardingState) => ({ ...prev, error: 'No password set' }));
+        return null;
+      }
+
+      if (!validateMnemonicForStellar(state.mnemonic)) {
+        setState((prev: OnboardingState) => ({ ...prev, error: 'Invalid mnemonic generated' }));
+        return null;
+      }
+
       setState((prev: OnboardingState) => ({ ...prev, isLoading: true, error: null }));
 
       try {
-        const keypair = deriveKeypair(state.mnemonic);
+        const keypair = deriveOnboardingKeypair(state.mnemonic);
         const publicKey = keypair.publicKey();
+        const encryptedMnemonic = await encryptSecretKey(state.mnemonic, state.password);
 
-        // Initialize Stellar client
         const client = new StellarClient({ network });
 
-        // Fund account with Friendbot on testnet
         if (network === 'testnet') {
           await client.fundWithFriendbot(publicKey);
         }
 
-        // Wait for account to be created
-        await new Promise((resolve) => setTimeout(resolve, 3000));
-
-        // Create a simple account initialization
-        // In production, this would deploy the actual account contract
         const contractId = `CAS${publicKey.slice(1, 56)}`;
 
         const account: OnboardedAccount = {
           publicKey,
           contractId,
-          encryptedMnemonic: {
-            version: 1,
-            iterations: 100000,
-            ciphertext: publicKey, // In production, use actual encrypted mnemonic
-            iv: 'test-iv',
-            salt: 'test-salt',
-          },
+          encryptedMnemonic,
         };
 
-        // Save to storage
-        localStorage.setItem(WALLET_STATE_KEY, 'locked');
-        localStorage.setItem(
-          ACCOUNTS_KEY,
-          JSON.stringify([
-            {
-              id: '1',
-              publicKey: account.publicKey,
-              contractId: account.contractId,
-              createdAt: Date.now(),
-            },
-          ])
-        );
+        const secureStorage = getOnboardingStorageManager();
+        await secureStorage.unlock(state.password);
+        await secureStorage.saveAccount({
+          privateKey: keypair.secret(),
+          publicKey: account.publicKey,
+          contractId: account.contractId,
+          encryptedMnemonic: account.encryptedMnemonic,
+        });
+        secureStorage.lock();
 
         setState((prev: OnboardingState) => ({
           ...prev,
@@ -2590,7 +2593,7 @@ export function useOnboarding() {
         return null;
       }
     },
-    [state.mnemonic]
+    [state.mnemonic, state.password]
   );
 
   /**
