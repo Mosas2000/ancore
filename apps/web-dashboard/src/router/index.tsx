@@ -12,6 +12,7 @@ import {
 } from 'react-router-dom';
 
 import { DashboardAuthProvider, useDashboardAuth } from '../auth';
+import { TransactionsPage } from '../pages/transactions';
 
 function ShellMessage({ title, description }: { title: string; description: string }) {
   return (
@@ -102,6 +103,7 @@ function DashboardLayout() {
       <div className="mx-auto grid max-w-5xl gap-6 px-6 py-6 lg:grid-cols-[220px_1fr]">
         <nav className="space-y-2 rounded-xl border border-slate-200 bg-white p-4">
           <Link to="/dashboard">Overview</Link>
+          <Link to="/dashboard/transactions">Transactions</Link>
           <Link to="/dashboard/reports">Reports</Link>
           <Link to="/dashboard/settings">Settings</Link>
         </nav>
@@ -235,6 +237,7 @@ export function DashboardRouterContent() {
         >
           <Route element={<DashboardLayout />}>
             <Route element={<OverviewPage />} path="/dashboard" />
+            <Route element={<TransactionsPage />} path="/dashboard/transactions" />
             <Route element={<ReportsPage />} path="/dashboard/reports" />
             <Route element={<SettingsPage />} path="/dashboard/settings" />
           </Route>
