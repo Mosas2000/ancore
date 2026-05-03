@@ -15,6 +15,7 @@ storybook-static/
 # Rust/Soroban
 target/
 Cargo.lock
+!contracts/Cargo.lock
 **/*.rs.bk
 
 # Testing
@@ -48,6 +49,8 @@ pnpm-debug.log*
 tmp/
 temp/
 *.tmp
+__pycache__/
+*.py[cod]
 
 # Secrets
 *.key
