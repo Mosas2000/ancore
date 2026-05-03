@@ -10,6 +10,7 @@ import {
   DEFAULT_DASHBOARD_SETTINGS,
   useDashboardSettingsStore,
 } from '../../../state/dashboard-settings';
+import { DEFAULTS, useSettingsStore } from '../../../stores/settings';
 import { SettingsScreen } from '../SettingsScreen';
 import { NetworkSettings } from '../NetworkSettings';
 import { SecuritySettings } from '../SecuritySettings';
@@ -30,6 +31,7 @@ describe('useSettings', () => {
   beforeEach(() => {
     localStorage.clear();
     useDashboardSettingsStore.setState(DEFAULT_DASHBOARD_SETTINGS);
+    useSettingsStore.setState(DEFAULTS);
   });
 
   it('returns default settings on first load', () => {
@@ -166,6 +168,8 @@ describe('NetworkSettings', () => {
 describe('SecuritySettings', () => {
   const defaultProps = {
     autoLockTimeout: 5,
+    requirePasswordForSensitiveActions: true,
+    onRequirePasswordForSensitiveActionsChange: vi.fn(),
     onAutoLockChange: vi.fn(),
     onBack: vi.fn(),
   };
@@ -217,6 +221,18 @@ describe('SecuritySettings', () => {
     await userEvent.click(screen.getByText('Export Private Key'));
     expect(screen.getByText(/private key grants full control/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/enter password/i)).toBeInTheDocument();
+  });
+
+  it('toggles require password for exports', async () => {
+    const onRequirePasswordForSensitiveActionsChange = vi.fn();
+    render(
+      <SecuritySettings
+        {...defaultProps}
+        onRequirePasswordForSensitiveActionsChange={onRequirePasswordForSensitiveActionsChange}
+      />
+    );
+    await userEvent.click(screen.getByText('Require password for exports'));
+    expect(onRequirePasswordForSensitiveActionsChange).toHaveBeenCalledWith(false);
   });
 
   it('shows export mnemonic warning', async () => {
