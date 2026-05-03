@@ -9,15 +9,27 @@ import { DisplaySettings } from './DisplaySettings';
 import { useSettings } from '../../hooks/useSettings';
 import { useToast } from '@ancore/ui-kit';
 import type { Network } from '@ancore/types';
+import { useSettingsStore } from '../../stores/settings';
 
 type SettingsView = 'root' | 'network' | 'security' | 'environment' | 'display' | 'about';
 
 export function SettingsScreen() {
   const { settings, updateSettings } = useSettings();
+  const runtimeTheme = useSettingsStore((state) => state.theme);
+  const setRuntimeTheme = useSettingsStore((state) => state.setTheme);
+  const setRuntimeNetwork = useSettingsStore((state) => state.setNetwork);
+  const setRuntimeAutoLockMinutes = useSettingsStore((state) => state.setAutoLockMinutes);
+  const requirePasswordForSensitiveActions = useSettingsStore(
+    (state) => state.requirePasswordForSensitiveActions
+  );
+  const setRequirePasswordForSensitiveActions = useSettingsStore(
+    (state) => state.setRequirePasswordForSensitiveActions
+  );
   const [view, setView] = React.useState<SettingsView>('root');
 
   function handleNetworkChange(network: Network) {
     updateSettings({ network });
+    setRuntimeNetwork(network);
   }
 
   if (view === 'network') {
@@ -34,7 +46,12 @@ export function SettingsScreen() {
     return (
       <SecuritySettings
         autoLockTimeout={settings.autoLockTimeout}
-        onAutoLockChange={(autoLockTimeout) => updateSettings({ autoLockTimeout })}
+        onAutoLockChange={(autoLockTimeout) => {
+          updateSettings({ autoLockTimeout });
+          setRuntimeAutoLockMinutes(autoLockTimeout);
+        }}
+        requirePasswordForSensitiveActions={requirePasswordForSensitiveActions}
+        onRequirePasswordForSensitiveActionsChange={setRequirePasswordForSensitiveActions}
         onBack={() => setView('root')}
       />
     );
@@ -55,6 +72,8 @@ export function SettingsScreen() {
       <DisplaySettings
         value={settings.displayPreference}
         onChange={(displayPreference) => updateSettings({ displayPreference })}
+        theme={runtimeTheme}
+        onThemeChange={setRuntimeTheme}
         onBack={() => setView('root')}
       />
     );
@@ -69,6 +88,7 @@ export function SettingsScreen() {
   const timeoutLabel = settings.autoLockTimeout === 0 ? 'Never' : `${settings.autoLockTimeout} min`;
   const environmentLabel = settings.environment === 'production' ? 'Production' : 'Staging';
   const displayLabel = settings.displayPreference === 'comfortable' ? 'Comfortable' : 'Compact';
+  const themeLabel = runtimeTheme.charAt(0).toUpperCase() + runtimeTheme.slice(1);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -118,7 +138,7 @@ export function SettingsScreen() {
             label="Density"
             description="Control spacing across dashboard pages"
             icon={<Monitor className="h-4 w-4" />}
-            value={displayLabel}
+            value={`${displayLabel} • ${themeLabel}`}
             onClick={() => setView('display')}
           />
         </SettingsGroup>
