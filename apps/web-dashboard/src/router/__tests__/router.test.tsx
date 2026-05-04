@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { DASHBOARD_SESSION_STORAGE_KEY } from '../../auth';
@@ -71,12 +71,12 @@ describe('dashboard router', () => {
   });
 
   it('supports login navigation from the fallback screen', async () => {
+    const user = userEvent.setup();
     render(<DashboardAppTestHarness initialEntries={['/login']} />);
 
-    fireEvent.change(screen.getByLabelText(/display name/i), {
-      target: { value: 'Dashboard Ops' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: /continue/i }));
+    await user.clear(screen.getByLabelText(/display name/i));
+    await user.type(screen.getByLabelText(/display name/i), 'Dashboard Ops');
+    await user.click(screen.getByRole('button', { name: /continue/i }));
 
     await waitFor(() =>
       expect(screen.getByRole('heading', { name: /overview/i })).toBeInTheDocument()
