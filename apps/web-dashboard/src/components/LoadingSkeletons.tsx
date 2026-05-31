@@ -230,3 +230,9 @@ export const DashboardPageSkeleton: React.FC = () => (
     <InvoiceListSkeleton />
   </div>
 );
+
+/**
+ * @deprecated Use AccountOverviewSkeleton instead.
+ * Preserved for backwards compatibility with existing tests and consumers.
+ */
+export const AccountSummarySkeleton = AccountOverviewSkeleton;

@@ -1,81 +1,152 @@
+import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { BalanceWidget, NonceWidget, AccountStatusWidget } from '../AccountWidgets';
 import React from 'react';
-import { Wallet, Hash, ShieldCheck, ShieldAlert, Shield } from 'lucide-react';
-import { MetricWidget } from './MetricWidget';
-import { AccountStatus } from '../hooks/useAccountOverview';
 
-interface WidgetProps {
-  isLoading?: boolean;
-  error?: Error | null;
-}
+// Mock lucide-react to avoid issues with SVG rendering in tests
+vi.mock('lucide-react', () => ({
+  Wallet: () => <div data-testid="wallet-icon" />,
+  Hash: () => <div data-testid="hash-icon" />,
+  ShieldCheck: () => <div data-testid="shield-check-icon" />,
+  ShieldAlert: () => <div data-testid="shield-alert-icon" />,
+  Shield: () => <div data-testid="shield-icon" />,
+  AlertCircle: () => <div data-testid="alert-icon" />,
+}));
 
-export const BalanceWidget: React.FC<WidgetProps & { balance?: number }> = ({
-  balance,
-  isLoading,
-  error,
-}) => {
-  const formattedBalance =
-    balance !== undefined
-      ? new Intl.NumberFormat('en-US', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 4,
-        }).format(balance) + ' XLM'
-      : undefined;
+// Mock @ancore/ui-kit
+vi.mock('@ancore/ui-kit', () => ({
+  Card: ({ children, className }: any) => <div className={className}>{children}</div>,
+  CardHeader: ({ children, className }: any) => <div className={className}>{children}</div>,
+  CardTitle: ({ children, className }: any) => <div className={className}>{children}</div>,
+  CardContent: ({ children, className }: any) => <div className={className}>{children}</div>,
+  Skeleton: ({ className }: any) => <div className={className} aria-hidden="true" />,
+}));
 
-  return (
-    <MetricWidget
-      title="Total Balance"
-      value={formattedBalance}
-      icon={<Wallet className="h-4 w-4" />}
-      isLoading={isLoading}
-      error={error}
-      description="Available on-chain balance"
-    />
-  );
-};
+describe('Account Overview Widgets', () => {
+  describe('BalanceWidget', () => {
+    it('renders balance correctly', () => {
+      render(<BalanceWidget balance={100.5} />);
+      expect(screen.getByText('100.50 XLM')).toBeInTheDocument();
+      expect(screen.getByText('Total Balance')).toBeInTheDocument();
+    });
 
-export const NonceWidget: React.FC<WidgetProps & { nonce?: number }> = ({
-  nonce,
-  isLoading,
-  error,
-}) => {
-  return (
-    <MetricWidget
-      title="Account Nonce"
-      value={nonce}
-      icon={<Hash className="h-4 w-4" />}
-      isLoading={isLoading}
-      error={error}
-      description="Current sequence number"
-    />
-  );
-};
+    it('renders zero balance correctly', () => {
+      render(<BalanceWidget balance={0} />);
+      expect(screen.getByText('0.00 XLM')).toBeInTheDocument();
+    });
 
-export const AccountStatusWidget: React.FC<WidgetProps & { status?: AccountStatus }> = ({
-  status,
-  isLoading,
-  error,
-}) => {
-  const getStatusIcon = () => {
-    switch (status) {
-      case 'active':
-        return <ShieldCheck className="h-4 w-4 text-green-500" />;
-      case 'locked':
-        return <ShieldAlert className="h-4 w-4 text-amber-500" />;
-      default:
-        return <Shield className="h-4 w-4" />;
-    }
-  };
+    it('renders loading state', () => {
+      render(<BalanceWidget isLoading={true} />);
+      expect(screen.getByTestId('metric-loading')).toBeInTheDocument();
+    });
 
-  const formattedStatus = status ? status.charAt(0).toUpperCase() + status.slice(1) : undefined;
+    it('renders error state', () => {
+      render(<BalanceWidget error={new Error('Test error')} />);
+      expect(screen.getByTestId('metric-error')).toBeInTheDocument();
+      expect(screen.getByText('Error loading data')).toBeInTheDocument();
+    });
+  });
 
-  return (
-    <MetricWidget
-      title="Account Status"
-      value={formattedStatus}
-      icon={getStatusIcon()}
-      isLoading={isLoading}
-      error={error}
-      description="Current security state"
-    />
-  );
-};
+  describe('NonceWidget', () => {
+    it('renders nonce correctly', () => {
+      render(<NonceWidget nonce={42} />);
+      expect(screen.getByText('42')).toBeInTheDocument();
+      expect(screen.getByText('Account Nonce')).toBeInTheDocument();
+    });
+
+    it('renders zero nonce correctly', () => {
+      render(<NonceWidget nonce={0} />);
+      expect(screen.getByText('0')).toBeInTheDocument();
+    });
+
+    it('renders missing data as dash', () => {
+      render(<NonceWidget />);
+      expect(screen.getByText('—')).toBeInTheDocument();
+    });
+  });
+
+  describe('Partial Data Rendering', () => {
+    it('renders dash when balance is missing but other props are provided', () => {
+      render(<BalanceWidget balance={undefined} isLoading={false} />);
+      expect(screen.getByText('—')).toBeInTheDocument();
+    });
+
+    it('renders dash when nonce is missing', () => {
+      render(<NonceWidget nonce={undefined} />);
+      expect(screen.getByText('—')).toBeInTheDocument();
+    });
+  });
+
+  describe('AccountStatusWidget', () => {
+    it('renders active status', () => {
+      render(<AccountStatusWidget status="active" />);
+      expect(screen.getByText('Active')).toBeInTheDocument();
+      expect(screen.getByTestId('shield-check-icon')).toBeInTheDocument();
+    });
+
+    it('renders locked status', () => {
+      render(<AccountStatusWidget status="locked" />);
+      expect(screen.getByText('Locked')).toBeInTheDocument();
+      expect(screen.getByTestId('shield-alert-icon')).toBeInTheDocument();
+    });
+
+    it('renders loading state', () => {
+      render(<AccountStatusWidget isLoading={true} />);
+      expect(screen.getByTestId('metric-loading')).toBeInTheDocument();
+    });
+  });
+});
+
+// ─── Skeleton tests ───────────────────────────────────────────────────────────
+
+import {
+  AccountOverviewSkeleton,
+  TransactionListSkeleton,
+  BalanceChartSkeleton,
+  SessionKeysSkeleton,
+  MultiSigSkeleton,
+  InvoiceListSkeleton,
+  DashboardPageSkeleton,
+} from '../../components/skeletons/LoadingSkeletons';
+
+describe('Loading Skeletons', () => {
+  it('AccountOverviewSkeleton renders with default testid', () => {
+    render(<AccountOverviewSkeleton />);
+    expect(screen.getByTestId('overview-skeleton')).toBeInTheDocument();
+  });
+
+  it('AccountOverviewSkeleton accepts custom testid', () => {
+    render(<AccountOverviewSkeleton data-testid="custom-overview" />);
+    expect(screen.getByTestId('custom-overview')).toBeInTheDocument();
+  });
+
+  it('TransactionListSkeleton renders with default testid', () => {
+    render(<TransactionListSkeleton />);
+    expect(screen.getByTestId('transaction-list-skeleton')).toBeInTheDocument();
+  });
+
+  it('BalanceChartSkeleton renders with default testid', () => {
+    render(<BalanceChartSkeleton />);
+    expect(screen.getByTestId('balance-chart-skeleton')).toBeInTheDocument();
+  });
+
+  it('SessionKeysSkeleton renders with default testid', () => {
+    render(<SessionKeysSkeleton />);
+    expect(screen.getByTestId('session-keys-skeleton')).toBeInTheDocument();
+  });
+
+  it('MultiSigSkeleton renders with default testid', () => {
+    render(<MultiSigSkeleton />);
+    expect(screen.getByTestId('multi-sig-skeleton')).toBeInTheDocument();
+  });
+
+  it('InvoiceListSkeleton renders with default testid', () => {
+    render(<InvoiceListSkeleton />);
+    expect(screen.getByTestId('invoice-list-skeleton')).toBeInTheDocument();
+  });
+
+  it('DashboardPageSkeleton renders with dashboard-skeleton testid', () => {
+    render(<DashboardPageSkeleton />);
+    expect(screen.getByTestId('dashboard-skeleton')).toBeInTheDocument();
+  });
+});
