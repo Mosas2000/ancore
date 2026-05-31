@@ -31,6 +31,9 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Verify dev/test scripts (smoke)
+        run: bash ./scripts/verify-dev-scripts.sh
+
       - name: Lint packages
         run: pnpm turbo run lint --filter='./packages/*'
 

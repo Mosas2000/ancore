@@ -138,6 +138,22 @@ make validate-env
 - **Mobile Wallet**: [apps/mobile-wallet/README.md](apps/mobile-wallet/README.md)
 - **Web Dashboard**: [apps/web-dashboard/README.md](apps/web-dashboard/README.md)
 
+### Developer Shortcuts
+
+We expose a small set of repo-root `pnpm` scripts that map to package-local commands
+using `pnpm --filter`. These make common tasks easier for contributors:
+
+```bash
+pnpm dev:extension   # start @ancore/extension-wallet dev server
+pnpm dev:dashboard   # start @ancore/web-dashboard dev server
+pnpm dev:mobile      # start @ancore/mobile-wallet dev/watch
+pnpm test:extension  # run @ancore/extension-wallet tests
+pnpm test:ui         # run @ancore/ui-kit tests
+```
+
+CI verifies these scripts on install via `scripts/verify-dev-scripts.sh` to ensure they
+resolve and respond to `--help`/dry-run flags on a clean install.
+
 ### Common Commands
 
 ```bash

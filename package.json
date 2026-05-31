@@ -15,6 +15,11 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "dev:extension": "pnpm --filter @ancore/extension-wallet run dev",
+    "dev:dashboard": "pnpm --filter @ancore/web-dashboard run dev",
+    "dev:mobile": "pnpm --filter @ancore/mobile-wallet run dev",
+    "test:extension": "pnpm --filter @ancore/extension-wallet run test",
+    "test:ui": "pnpm --filter @ancore/ui-kit run test",
     "test": "turbo run test",
     "lint": "turbo run lint",
     "typecheck": "turbo run build",
