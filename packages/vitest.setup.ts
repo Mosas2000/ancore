@@ -10,11 +10,18 @@
  */
 
 import '@testing-library/jest-dom';
-import { afterEach } from 'vitest';
+import { afterEach, beforeEach } from 'vitest';
 import { cleanup } from '@testing-library/react';
 
 afterEach(() => {
   cleanup();
+});
+
+beforeEach(() => {
+  // Prevent extension API mocks from leaking between test files in CI.
+  delete (globalThis as { chrome?: unknown }).chrome;
+  delete (globalThis as { browser?: unknown }).browser;
+  globalThis.localStorage?.clear?.();
 });
 
 // ── Deterministic localStorage ────────────────────────────────────────────────

@@ -99,6 +99,9 @@ We are committed to providing a welcoming and inclusive environment. Please:
    ```
 
    Follow [Conventional Commits](https://www.conventionalcommits.org/)
+   Staged TypeScript, JavaScript, JSON, and Markdown files are formatted with Prettier during
+   pre-commit. Staged source files under `packages/*`, `apps/*`, and `services/relayer` also run
+   their package-local ESLint autofix command.
 
 6. Push to your fork:
 
@@ -107,6 +110,55 @@ We are committed to providing a welcoming and inclusive environment. Please:
    ```
 
 7. Open a Pull Request
+
+## App Development
+
+### Full-Stack Local Development
+
+To develop features that span multiple apps and services, set up a local development environment:
+
+```bash
+# Copy environment file
+cp .env.example .env.local
+
+# Start services in separate terminals
+pnpm --filter @ancore/indexer dev
+pnpm --filter @ancore/relayer dev
+pnpm --filter @ancore/ai-agent dev
+
+# Validate service health
+make validate-env
+```
+
+**See [Local Services Setup](docs/development/local-services.md) for detailed instructions.**
+
+### App-Specific Guides
+
+- **Extension Wallet**: [apps/extension-wallet/README.md](apps/extension-wallet/README.md)
+- **Mobile Wallet**: [apps/mobile-wallet/README.md](apps/mobile-wallet/README.md)
+- **Web Dashboard**: [apps/web-dashboard/README.md](apps/web-dashboard/README.md)
+
+### Common Commands
+
+```bash
+# Run all tests
+make test
+
+# Run contract tests only
+make test-contracts
+
+# Lint all code
+make lint
+
+# Fix linting issues
+make lint-fix
+
+# Build all packages
+make build
+
+# See all available targets
+make help
+```
 
 ## Security Boundaries
 

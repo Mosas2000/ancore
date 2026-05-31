@@ -1,10 +1,25 @@
 import { useState } from 'react';
 import { Button, Card, CardContent, CardHeader, CardTitle, Separator, cn } from '@ancore/ui-kit';
 import type { SendTransactionDraft } from '@/hooks/useSendTransaction';
-import { ShieldCheck, ArrowRight, Wallet, Globe, Info } from 'lucide-react';
+import { TransferNotePreview } from '@/components/TransferNotePreview';
+import {
+  ShieldCheck,
+  ArrowRight,
+  Wallet,
+  Globe,
+  Info,
+  AlertCircle,
+  CalendarClock,
+} from 'lucide-react';
+import type { ScheduleConfig, TransferTiming } from '@/screens/Send/ScheduleControls';
+import { SimulationPreview, type SimulationState } from './SimulationPreview';
 
 interface ReviewScreenProps {
   transaction: SendTransactionDraft;
+  timing?: TransferTiming;
+  schedule?: ScheduleConfig;
+  /** Simulation state — when provided, shows the preview panel above the fee summary. */
+  simulation?: SimulationState;
   onBack: () => void;
   onConfirm: () => void;
 }
@@ -16,7 +31,14 @@ interface ReviewScreenProps {
  * To prevent misdirected payments, the "Continue" button is blocked until the
  * user explicitly interacts with the recipient confirmation checkbox.
  */
-export function ReviewScreen({ transaction, onBack, onConfirm }: ReviewScreenProps) {
+export function ReviewScreen({
+  transaction,
+  timing,
+  schedule,
+  simulation,
+  onBack,
+  onConfirm,
+}: ReviewScreenProps) {
   const [isConfirmed, setIsConfirmed] = useState(false);
 
   return (
@@ -37,6 +59,19 @@ export function ReviewScreen({ transaction, onBack, onConfirm }: ReviewScreenPro
               Recipient Address
             </span>
           </div>
+          {(transaction.resolvedHandle || transaction.recipientInput?.startsWith('@')) && (
+            <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-3 text-xs text-cyan-100">
+              <span className="font-black uppercase tracking-widest text-[10px] text-cyan-300">
+                Resolved handle
+              </span>
+              <div className="mt-1 font-semibold">
+                {transaction.resolvedHandle?.handle ?? transaction.recipientInput}
+                {transaction.resolvedHandle?.displayName
+                  ? ` · ${transaction.resolvedHandle.displayName}`
+                  : ''}
+              </div>
+            </div>
+          )}
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4 break-all font-mono text-[11px] text-cyan-300 leading-relaxed shadow-inner group transition-colors hover:border-cyan-400/30">
             {transaction.to}
           </div>
@@ -68,6 +103,51 @@ export function ReviewScreen({ transaction, onBack, onConfirm }: ReviewScreenPro
           </div>
         </div>
 
+        {/* Transfer Note */}
+        {transaction.truncatedNote && <TransferNotePreview note={transaction.truncatedNote} />}
+
+        {transaction.policyAction === 'step_up' && transaction.policyMessage && (
+          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+            <AlertCircle className="w-5 h-5 shrink-0 text-amber-400 mt-0.5" />
+            <div className="space-y-1">
+              <strong className="block text-[11px] uppercase tracking-widest text-amber-300 font-black">
+                Verification Required
+              </strong>
+              <p className="text-[10px] text-amber-200 leading-relaxed">
+                {transaction.policyMessage}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {timing === 'scheduled' && schedule && (
+          <div className="space-y-2 rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4">
+            <div className="flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-cyan-400" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-cyan-300">
+                Scheduled Transfer
+              </span>
+            </div>
+            <p className="text-xs text-slate-300">
+              Frequency: <span className="font-semibold text-white">{schedule.frequency}</span>
+            </p>
+            <p className="text-xs text-slate-300">
+              Starts:{' '}
+              <span className="font-semibold text-white">
+                {new Date(schedule.startAt).toLocaleString()}
+              </span>
+            </p>
+            {schedule.endAt && (
+              <p className="text-xs text-slate-300">
+                Ends:{' '}
+                <span className="font-semibold text-white">
+                  {new Date(schedule.endAt).toLocaleString()}
+                </span>
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Fees Summary */}
         <div className="space-y-3 bg-white/5 border border-white/10 rounded-2xl p-5">
           <div className="flex justify-between items-center text-[10px] font-bold">
@@ -84,6 +164,9 @@ export function ReviewScreen({ transaction, onBack, onConfirm }: ReviewScreenPro
             </span>
           </div>
         </div>
+
+        {/* Simulation Preview */}
+        {simulation && <SimulationPreview simulation={simulation} />}
 
         {/* Explicit Confirmation Step */}
         <div
@@ -119,7 +202,7 @@ export function ReviewScreen({ transaction, onBack, onConfirm }: ReviewScreenPro
               Confirm Recipient
             </span>
             <span className="text-[10px] text-slate-400 leading-relaxed block font-medium">
-              I have verified the address above and confirm it is correct.
+              I have verified the resolved recipient above and confirm it is correct.
               <span className="text-amber-400/80"> Payments are irreversible.</span>
             </span>
           </div>
@@ -137,7 +220,9 @@ export function ReviewScreen({ transaction, onBack, onConfirm }: ReviewScreenPro
           </Button>
           <Button
             type="button"
-            disabled={!isConfirmed}
+            disabled={
+              !isConfirmed || simulation?.status === 'loading' || simulation?.status === 'error'
+            }
             className="flex-[2] bg-cyan-400 text-slate-950 font-black uppercase tracking-widest rounded-2xl h-12 shadow-[0_10px_20px_rgba(34,211,238,0.2)] hover:bg-cyan-300 disabled:opacity-50 disabled:grayscale transition-all flex items-center justify-center gap-2 text-[10px]"
             onClick={onConfirm}
           >

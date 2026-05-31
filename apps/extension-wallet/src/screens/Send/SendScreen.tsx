@@ -14,13 +14,24 @@ import {
   type SendFormValues,
   type SendService,
 } from '@/hooks/useSendTransaction';
+import { useRecentRecipients } from '@/hooks/useRecentRecipients';
 import { ConfirmDialog } from '@/screens/Send/ConfirmDialog';
 import { ReviewScreen } from '@/screens/Send/ReviewScreen';
 import { StatusScreen } from '@/screens/Send/StatusScreen';
+import { TransferNoteInput } from '@/components/TransferNoteInput';
 import { SendHorizontal, Info, AlertCircle } from 'lucide-react';
+import {
+  ScheduleControls,
+  createDefaultScheduleConfig,
+  type ScheduleConfig,
+  type TransferTiming,
+} from '@/screens/Send/ScheduleControls';
+import { ScheduledConfirmationScreen } from '@/screens/ScheduledTransfers/ScheduledConfirmationScreen';
 
 interface SendScreenProps {
   balance?: number;
+  /** Maximum decimal places for the asset being sent. Defaults to 7 (XLM). */
+  assetDecimals?: number;
   service?: SendService;
   pollIntervalMs?: number;
 }
@@ -30,20 +41,37 @@ interface SendScreenProps {
  *
  * Implements a premium dark UI with real-time validation and simulation feedback.
  */
-export function SendScreen({ balance, service, pollIntervalMs }: SendScreenProps) {
-  const [form, setForm] = useState<SendFormValues>({ to: '', amount: '' });
+export function SendScreen({ balance, assetDecimals, service, pollIntervalMs }: SendScreenProps) {
+  const [form, setForm] = useState<SendFormValues>({
+    to: '',
+    amount: '',
+    note: '',
+    timing: 'immediate',
+    schedule: createDefaultScheduleConfig(),
+  });
 
-  const send = useSendTransaction({ balance, service, pollIntervalMs });
+  const send = useSendTransaction({ balance, assetDecimals, service, pollIntervalMs });
+  const { recipients, addRecipient } = useRecentRecipients();
 
   const onMax = () => {
     setForm((current) => ({ ...current, amount: String(send.balance) }));
     send.setMaxAmount();
   };
 
+  const handleReview = async () => {
+    const success = await send.goToReview(form);
+    if (success) {
+      await addRecipient({ address: send.tx?.to ?? form.to });
+    }
+  };
+
   if (send.step === 'review' && send.tx) {
     return (
       <ReviewScreen
         transaction={send.tx}
+        timing={send.timing}
+        schedule={send.schedule}
+        simulation={send.simulation}
         onBack={() => send.setStep('form')}
         onConfirm={send.requestConfirm}
       />
@@ -54,12 +82,17 @@ export function SendScreen({ balance, service, pollIntervalMs }: SendScreenProps
     return (
       <ConfirmDialog
         transaction={send.tx}
+        timing={send.timing}
         error={send.errors.password}
         loading={send.submitting}
         onBack={() => send.setStep('review')}
         onSign={send.confirmAndSubmit}
       />
     );
+  }
+
+  if (send.step === 'scheduled' && send.scheduledTransfer) {
+    return <ScheduledConfirmationScreen transfer={send.scheduledTransfer} />;
   }
 
   if (send.step === 'status' && send.txId) {
@@ -78,11 +111,13 @@ export function SendScreen({ balance, service, pollIntervalMs }: SendScreenProps
       <CardContent className="space-y-6 pt-8 px-6 pb-8">
         <div className="space-y-6">
           <AddressInput
-            label="Recipient Address"
-            placeholder="G..."
+            label="Recipient"
+            placeholder="@username or G..."
             value={form.to}
             error={send.errors.to}
             className="group"
+            recentRecipients={recipients}
+            onSelectRecent={(address) => setForm((current) => ({ ...current, to: address }))}
             onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
               setForm((current) => ({ ...current, to: event.target.value }))
             }
@@ -99,6 +134,33 @@ export function SendScreen({ balance, service, pollIntervalMs }: SendScreenProps
               setForm((current) => ({
                 ...current,
                 amount: event.target.value,
+              }))
+            }
+          />
+
+          <TransferNoteInput
+            value={form.note || ''}
+            onChange={(note) => setForm((current) => ({ ...current, note }))}
+            error={send.errors.note}
+            placeholder="Add a note (optional)"
+          />
+
+          <ScheduleControls
+            timing={(form.timing ?? 'immediate') as TransferTiming}
+            schedule={(form.schedule ?? createDefaultScheduleConfig()) as ScheduleConfig}
+            error={send.errors.simulation}
+            onTimingChange={(timing) =>
+              setForm((current) => ({
+                ...current,
+                timing,
+                schedule: current.schedule ?? createDefaultScheduleConfig(),
+              }))
+            }
+            onScheduleChange={(schedule) =>
+              setForm((current) => ({
+                ...current,
+                timing: 'scheduled',
+                schedule,
               }))
             }
           />
@@ -124,7 +186,7 @@ export function SendScreen({ balance, service, pollIntervalMs }: SendScreenProps
               'bg-cyan-400 text-slate-950 shadow-[0_15px_30px_rgba(34,211,238,0.15)] hover:bg-cyan-300 hover:scale-[1.02] hover:shadow-[0_20px_40px_rgba(34,211,238,0.2)]',
               'disabled:opacity-50 disabled:grayscale disabled:scale-100'
             )}
-            onClick={() => void send.goToReview(form)}
+            onClick={handleReview}
             loading={send.submitting}
             disabled={send.submitting}
           >

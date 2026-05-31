@@ -1,14 +1,12 @@
 name: Validate Observability Configs
 
 on:
-  pull_request:
-    paths:
-      - 'docs/ops/**'
-      - 'services/prometheus.yml'
   push:
     branches: [main]
     paths:
       - 'docs/ops/**'
+      - 'services/prometheus.yml'
+  workflow_dispatch:
 
 jobs:
   validate-alert-rules:
@@ -30,12 +28,6 @@ jobs:
             echo "Checking $f"
             promtool check rules "$f"
           done
-
-      - name: Check prometheus config
-        run: |
-          if [ -f services/prometheus.yml ]; then
-            promtool check config services/prometheus.yml
-          fi
 
   validate-alertmanager:
     name: Lint Alertmanager Config

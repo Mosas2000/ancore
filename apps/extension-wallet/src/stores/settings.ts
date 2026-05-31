@@ -26,12 +26,16 @@ export interface SettingsState {
   autoLockMinutes: number;
   requirePasswordForSensitiveActions: boolean;
   notificationPreferences: NotificationPreferences;
+  dailyTransferLimit: number;
+  transferStepUpThreshold: number;
 
   setNetwork: (network: NetworkMode) => void;
   setTheme: (theme: ThemePreference) => void;
   setAutoLockMinutes: (minutes: number) => void;
   setRequirePasswordForSensitiveActions: (value: boolean) => void;
   setNotificationPreference: (category: NotificationCategory, enabled: boolean) => void;
+  setDailyTransferLimit: (amount: number) => void;
+  setTransferStepUpThreshold: (amount: number) => void;
   reset: () => void;
 }
 
@@ -52,6 +56,8 @@ export const DEFAULTS = {
     failed: true,
     security: true,
   } as NotificationPreferences,
+  dailyTransferLimit: 1000,
+  transferStepUpThreshold: 250,
 };
 
 const STORE_VERSION = 3;
@@ -82,6 +88,8 @@ export const useSettingsStore = create<SettingsState>()(
             [category]: enabled,
           },
         })),
+      setDailyTransferLimit: (dailyTransferLimit) => set({ dailyTransferLimit }),
+      setTransferStepUpThreshold: (transferStepUpThreshold) => set({ transferStepUpThreshold }),
       reset: () => set(DEFAULTS),
     }),
     {
@@ -93,6 +101,8 @@ export const useSettingsStore = create<SettingsState>()(
         theme: state.theme,
         autoLockMinutes: state.autoLockMinutes,
         requirePasswordForSensitiveActions: state.requirePasswordForSensitiveActions,
+        dailyTransferLimit: state.dailyTransferLimit,
+        transferStepUpThreshold: state.transferStepUpThreshold,
       }),
       migrate: (persistedState) => persistedState as SettingsState,
       merge: (persistedState, currentState) => {
@@ -100,6 +110,8 @@ export const useSettingsStore = create<SettingsState>()(
         const network = persisted.network;
         const theme = persisted.theme;
         const autoLockMinutes = persisted.autoLockMinutes;
+        const dailyTransferLimit = persisted.dailyTransferLimit;
+        const transferStepUpThreshold = persisted.transferStepUpThreshold;
 
         return {
           ...currentState,
@@ -118,6 +130,14 @@ export const useSettingsStore = create<SettingsState>()(
             typeof persisted.requirePasswordForSensitiveActions === 'boolean'
               ? persisted.requirePasswordForSensitiveActions
               : DEFAULTS.requirePasswordForSensitiveActions,
+          dailyTransferLimit:
+            typeof dailyTransferLimit === 'number' && dailyTransferLimit >= 0
+              ? dailyTransferLimit
+              : DEFAULTS.dailyTransferLimit,
+          transferStepUpThreshold:
+            typeof transferStepUpThreshold === 'number' && transferStepUpThreshold >= 0
+              ? transferStepUpThreshold
+              : DEFAULTS.transferStepUpThreshold,
         };
       },
       onRehydrateStorage: () => (state) => {

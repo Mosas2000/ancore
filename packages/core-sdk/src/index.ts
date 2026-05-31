@@ -22,7 +22,15 @@ export { AncoreClient, type AncoreClientOptions } from './ancore-client';
 // Session key helpers
 export { addSessionKey, type AddSessionKeyParams } from './add-session-key';
 export { revokeSessionKey, type RevokeSessionKeyParams } from './revoke-session-key';
-export { permissionToLabel, permissionsToLabels, formatPermissions } from './session-key-utils';
+export {
+  permissionToLabel,
+  permissionsToLabels,
+  formatPermissions,
+  isSessionKeyActive,
+  getSessionKeyInactiveReason,
+  type IsSessionKeyActiveOptions,
+  type SessionKeyInactiveReason,
+} from './session-key-utils';
 
 // Payment
 export {
@@ -34,6 +42,10 @@ export {
 
 // Payment Request
 export { parsePaymentRequest, type PaymentRequest } from './payment-request';
+
+// Amount normalization
+export { normalizeAmount, type NormalizationOptions } from './amount';
+export { formatFiatAmount, type FiatFormatOptions } from './fiat-formatter';
 
 // Account transaction builder (wrapper around Stellar SDK's TransactionBuilder)
 export {
@@ -61,7 +73,12 @@ export {
   SimulationFailedError,
   TransactionSubmissionError,
   PaymentRequestValidationError,
+  InvalidAmountError,
 } from './errors';
+
+// Normalization helpers
+export type { ErrorCategory, NormalizedError } from './errors';
+export { normalizeError } from './errors';
 
 // Retry policy presets
 export {
@@ -72,6 +89,22 @@ export {
   type RetryPresetName,
   getRetryPreset,
 } from './retry-presets';
+
+// Scheduled transfers
+export {
+  HttpSchedulerClient,
+  createSchedulerClient,
+  getSchedulerClient,
+  resetSchedulerClientForTests,
+  resolveRelayerBaseUrl,
+  buildDefaultRelayPayload,
+  toIsoStartAt,
+  defaultScheduleStartAt,
+  SCHEDULE_FREQUENCY_OPTIONS,
+  DEMO_ACCOUNT_ADDRESS,
+  type SchedulerClient,
+  type SchedulerClientOptions,
+} from './scheduler-client';
 
 export {
   mapExecuteWithSessionKeyError,
@@ -96,6 +129,8 @@ export { getSessionKeys, type GetSessionKeysDeps } from './storage/get-session-k
 export type {
   AccountData,
   EncryptedPayload,
+  RecentRecipient,
+  RecentRecipientsData,
   SessionKeysData,
   StorageAdapter,
 } from './storage/types';
