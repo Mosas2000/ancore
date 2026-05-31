@@ -13,6 +13,7 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     testTimeout: 30000,
     css: true,
+    fileParallelism: process.env.CI !== 'true',
     exclude: [
       '**/node_modules/**',
       '**/*.e2e.test.{ts,tsx}',

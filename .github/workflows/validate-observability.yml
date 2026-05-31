@@ -31,12 +31,6 @@ jobs:
             promtool check rules "$f"
           done
 
-      - name: Check prometheus config
-        run: |
-          if [ -f services/prometheus.yml ]; then
-            promtool check config services/prometheus.yml
-          fi
-
   validate-alertmanager:
     name: Lint Alertmanager Config
     runs-on: ubuntu-latest

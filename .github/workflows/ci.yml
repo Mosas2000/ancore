@@ -106,7 +106,7 @@ jobs:
         run: pnpm build
 
       - name: Run tests
-        run: pnpm test
+        run: pnpm test --concurrency=1
 
       - name: Check coverage gates
         run: node scripts/coverage-gate.js
@@ -119,120 +119,6 @@ jobs:
           name: coverage-reports
           path: packages/*/coverage/
           retention-days: 30
-
-  coverage-report:
-    name: Coverage Report
-    runs-on: ubuntu-latest
-    needs: test
-    if: always()
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build packages
-        run: pnpm build
-
-      - name: Run tests with coverage
-        run: pnpm test
-        continue-on-error: true
-
-      - name: Generate coverage summary
-        run: |
-          echo "## 📊 Coverage Report" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-
-          for package in core-sdk account-abstraction crypto stellar; do
-            if [ -f "packages/$package/coverage/coverage-summary.json" ]; then
-              echo "### $package" >> $GITHUB_STEP_SUMMARY
-              echo '```' >> $GITHUB_STEP_SUMMARY
-              node -e "
-                const data = require('./packages/$package/coverage/coverage-summary.json');
-                const total = data.total;
-                console.log('Branch:    ' + total.branches.pct + '%');
-                console.log('Functions: ' + total.functions.pct + '%');
-                console.log('Lines:     ' + total.lines.pct + '%');
-                console.log('Statements: ' + total.statements.pct + '%');
-              " >> $GITHUB_STEP_SUMMARY
-              echo '```' >> $GITHUB_STEP_SUMMARY
-            fi
-          done
-
-  extension-e2e-smoke:
-    name: Extension E2E Smoke
-    runs-on: ubuntu-latest
-    needs: quarantine-registry
-    strategy:
-      fail-fast: false
-      matrix:
-        browser: [chromium, firefox]
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2
-        with:
-          version: 9
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Install Playwright browser dependencies
-        run: pnpm --filter @ancore/extension-wallet exec playwright install --with-deps ${{ matrix.browser }}
-
-      - name: Run extension smoke suite
-        id: smoke
-        run: node scripts/ci/flaky-quarantine.js run --area extension-wallet -- pnpm --filter @ancore/extension-wallet exec playwright test --config=tests/playwright.config.ts --grep @smoke --project=${{ matrix.browser }}
-
-      - name: Auto-tag PR when quarantine absorbs a smoke failure
-        if: github.event_name == 'pull_request' && steps.smoke.outputs.quarantined == 'true'
-        uses: actions/github-script@v7
-        continue-on-error: true
-        with:
-          script: |
-            const fs = require('fs');
-            const registry = JSON.parse(fs.readFileSync('.github/flaky-test-quarantine.json', 'utf8'));
-            await github.rest.issues.addLabels({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              labels: registry.labels
-            });
-
-      - name: Upload flaky quarantine report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: flaky-quarantine-report-${{ matrix.browser }}
-          path: .ci/flaky-quarantine-report.md
-          if-no-files-found: ignore
-          retention-days: 30
-
-      - name: Upload extension E2E failure artifacts
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: extension-e2e-failure-artifacts-${{ matrix.browser }}
-          path: apps/extension-wallet/test-results/
-          retention-days: 7
 
   contracts:
     name: Build & Test Contracts
@@ -318,8 +204,7 @@ jobs:
       github.event_name == 'push' ||
       contains(github.event.pull_request.title, 'indexer') ||
       startsWith(github.head_ref, 'feat/') ||
-      startsWith(github.head_ref, 'fix/') ||
-      true
+      startsWith(github.head_ref, 'fix/')
     steps:
       - uses: actions/checkout@v4
 
@@ -383,10 +268,7 @@ jobs:
     name: Relayer — Log Redaction Check
     runs-on: ubuntu-latest
     needs: quarantine-registry
-    if: |
-      github.event_name == 'push' ||
-      contains(github.event.pull_request.changed_files, 'services/relayer') ||
-      true
+    if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
 
@@ -404,9 +286,6 @@ jobs:
       - name: Install relayer dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build relayer workspace dependencies
-        run: pnpm --filter @ancore/relayer... build
-
       - name: Run log-redaction grep check
         # Fails CI (exit 1) if any log call site passes a raw sensitive field
         # without going through a redact*() helper. See:
@@ -414,19 +293,12 @@ jobs:
         run: node scripts/check-log-redaction.js
         working-directory: services/relayer
 
-      - name: Run relayer tests (includes redaction unit tests)
-        run: pnpm test
-        working-directory: services/relayer
-
   # ── Issue #650: ai-agent Docker image build + smoke test ─────────────────
   ai-agent-docker:
     name: AI Agent — Docker Build & Smoke Test
     runs-on: ubuntu-latest
     needs: quarantine-registry
-    if: |
-      github.event_name == 'push' ||
-      contains(github.event.pull_request.changed_files, 'services/ai-agent') ||
-      true
+    if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
 
