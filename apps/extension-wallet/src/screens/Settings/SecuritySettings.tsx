@@ -24,6 +24,8 @@ interface SecuritySettingsProps {
   onAutoLockChange: (minutes: number) => void;
   requirePasswordForSensitiveActions: boolean;
   onRequirePasswordForSensitiveActionsChange: (value: boolean) => void;
+  enableLockShortcut: boolean;
+  onEnableLockShortcutChange: (value: boolean) => void;
   onBack: () => void;
 }
 
@@ -518,6 +520,8 @@ export function SecuritySettings({
   onAutoLockChange,
   requirePasswordForSensitiveActions,
   onRequirePasswordForSensitiveActionsChange,
+  enableLockShortcut,
+  onEnableLockShortcutChange,
   onBack,
 }: SecuritySettingsProps) {
   const [view, setView] = React.useState<SecurityView>('menu');
@@ -547,6 +551,8 @@ export function SecuritySettings({
           onNavigate={setView}
           requirePasswordForSensitiveActions={requirePasswordForSensitiveActions}
           onRequirePasswordForSensitiveActionsChange={onRequirePasswordForSensitiveActionsChange}
+          enableLockShortcut={enableLockShortcut}
+          onEnableLockShortcutChange={onEnableLockShortcutChange}
         />
       )}
       {view === 'change-password' && <ChangePasswordView onDone={() => setView('menu')} />}
@@ -588,11 +594,15 @@ function SecurityMenu({
   onNavigate,
   requirePasswordForSensitiveActions,
   onRequirePasswordForSensitiveActionsChange,
+  enableLockShortcut,
+  onEnableLockShortcutChange,
 }: {
   autoLockTimeout: number;
   onNavigate: (v: SecurityView) => void;
   requirePasswordForSensitiveActions: boolean;
   onRequirePasswordForSensitiveActionsChange: (value: boolean) => void;
+  enableLockShortcut: boolean;
+  onEnableLockShortcutChange: (value: boolean) => void;
 }) {
   const { policy } = useTransferPolicy();
   const timeoutLabel = TIMEOUT_OPTIONS.find((o) => o.value === autoLockTimeout)?.label ?? 'Custom';
@@ -629,6 +639,12 @@ function SecurityMenu({
           onClick={() =>
             onRequirePasswordForSensitiveActionsChange(!requirePasswordForSensitiveActions)
           }
+        />
+        <MenuItem
+          label="Lock shortcut"
+          description="⌘+Shift+L (Mac) / Ctrl+Shift+L (Win/Linux)"
+          value={enableLockShortcut ? 'Enabled' : 'Disabled'}
+          onClick={() => onEnableLockShortcutChange(!enableLockShortcut)}
         />
       </div>
       <p className="px-1 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">

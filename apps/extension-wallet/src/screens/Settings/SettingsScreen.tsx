@@ -25,6 +25,8 @@ export function SettingsScreen() {
   const setRequirePasswordForSensitiveActions = useSettingsStore(
     (state) => state.setRequirePasswordForSensitiveActions
   );
+  const enableLockShortcut = useSettingsStore((state) => state.enableLockShortcut);
+  const setEnableLockShortcut = useSettingsStore((state) => state.setEnableLockShortcut);
   const [view, setView] = React.useState<SettingsView>('root');
 
   function handleNetworkChange(network: Network) {
@@ -52,6 +54,8 @@ export function SettingsScreen() {
         }}
         requirePasswordForSensitiveActions={requirePasswordForSensitiveActions}
         onRequirePasswordForSensitiveActionsChange={setRequirePasswordForSensitiveActions}
+        enableLockShortcut={enableLockShortcut}
+        onEnableLockShortcutChange={setEnableLockShortcut}
         onBack={() => setView('root')}
       />
     );

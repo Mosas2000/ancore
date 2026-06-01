@@ -28,6 +28,7 @@ export interface SettingsState {
   notificationPreferences: NotificationPreferences;
   dailyTransferLimit: number;
   transferStepUpThreshold: number;
+  enableLockShortcut: boolean;
 
   setNetwork: (network: NetworkMode) => void;
   setTheme: (theme: ThemePreference) => void;
@@ -36,6 +37,7 @@ export interface SettingsState {
   setNotificationPreference: (category: NotificationCategory, enabled: boolean) => void;
   setDailyTransferLimit: (amount: number) => void;
   setTransferStepUpThreshold: (amount: number) => void;
+  setEnableLockShortcut: (value: boolean) => void;
   reset: () => void;
 }
 
@@ -58,6 +60,7 @@ export const DEFAULTS = {
   } as NotificationPreferences,
   dailyTransferLimit: 1000,
   transferStepUpThreshold: 250,
+  enableLockShortcut: true,
 };
 
 const STORE_VERSION = 3;
@@ -90,6 +93,7 @@ export const useSettingsStore = create<SettingsState>()(
         })),
       setDailyTransferLimit: (dailyTransferLimit) => set({ dailyTransferLimit }),
       setTransferStepUpThreshold: (transferStepUpThreshold) => set({ transferStepUpThreshold }),
+      setEnableLockShortcut: (enableLockShortcut) => set({ enableLockShortcut }),
       reset: () => set(DEFAULTS),
     }),
     {
@@ -103,6 +107,7 @@ export const useSettingsStore = create<SettingsState>()(
         requirePasswordForSensitiveActions: state.requirePasswordForSensitiveActions,
         dailyTransferLimit: state.dailyTransferLimit,
         transferStepUpThreshold: state.transferStepUpThreshold,
+        enableLockShortcut: state.enableLockShortcut,
       }),
       migrate: (persistedState) => persistedState as SettingsState,
       merge: (persistedState, currentState) => {
@@ -138,6 +143,10 @@ export const useSettingsStore = create<SettingsState>()(
             typeof transferStepUpThreshold === 'number' && transferStepUpThreshold >= 0
               ? transferStepUpThreshold
               : DEFAULTS.transferStepUpThreshold,
+          enableLockShortcut:
+            typeof persisted.enableLockShortcut === 'boolean'
+              ? persisted.enableLockShortcut
+              : DEFAULTS.enableLockShortcut,
         };
       },
       onRehydrateStorage: () => (state) => {
