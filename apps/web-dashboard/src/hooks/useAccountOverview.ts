@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { fetchAccountBalance, fetchAccountData } from '../lib/horizon';
 
 export type AccountStatus = 'active' | 'inactive' | 'locked';
 
@@ -62,7 +63,7 @@ function classifyAccountOverviewError(status?: number): AccountOverviewError {
 
 /**
  * Hook to fetch account overview metrics (balance, nonce, status).
- * In production, this would use @ancore/core-sdk to query the Stellar network.
+ * Uses Horizon API to fetch real Stellar account data.
  */
 export function useAccountOverview(publicKey: string): UseAccountOverviewReturn {
   const [data, setData] = useState<AccountOverview | null>(null);
@@ -71,8 +72,8 @@ export function useAccountOverview(publicKey: string): UseAccountOverviewReturn 
 
   const fetchData = useCallback(async () => {
     if (!publicKey) {
-      setIsLoading(false);
       setData(null);
+      setIsLoading(false);
       return;
     }
 
@@ -80,26 +81,17 @@ export function useAccountOverview(publicKey: string): UseAccountOverviewReturn 
     setError(null);
 
     try {
-      const response = await fetch(`/api/account-overview?publicKey=${encodeURIComponent(publicKey)}`);
-
-      if (!response.ok) {
-        throw classifyAccountOverviewError(response.status);
-      }
-
-      const payload = (await response.json()) as Partial<AccountOverview>;
+      const accountData = await fetchAccountData(publicKey);
+      const balance = await fetchAccountBalance(publicKey);
 
       setData({
-        balance: payload.balance ?? MOCK_ACCOUNT_OVERVIEW.balance,
-        nonce: payload.nonce ?? MOCK_ACCOUNT_OVERVIEW.nonce,
-        status: payload.status ?? MOCK_ACCOUNT_OVERVIEW.status,
+        balance,
+        nonce: Number(accountData.sequence),
+        status: 'active',
       });
     } catch (err) {
+      setError(err instanceof Error ? err : new Error('Failed to fetch account data'));
       setData(null);
-      if (err instanceof AccountOverviewError) {
-        setError(err);
-      } else {
-        setError(new AccountOverviewError('Failed to fetch account data', 'FETCH_FAILED'));
-      }
     } finally {
       setIsLoading(false);
     }
