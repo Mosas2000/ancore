@@ -13,13 +13,9 @@ import {
 } from 'react-router-dom';
 import {
   ArrowLeft,
-  ArrowRight,
   Copy,
   Lock,
   PlusCircle,
-  ShieldCheck,
-  Sparkles,
-  Wallet,
 } from 'lucide-react';
 import { NotificationProvider } from '@ancore/ui-kit';
 import {
@@ -29,6 +25,7 @@ import {
   UnlockVerifier,
   useExtensionAuth,
 } from './AuthGuard';
+import { OnboardingFlow } from '../screens/Onboarding/OnboardingFlow';
 import { NavBar } from '../components/Navigation/NavBar';
 import { SettingsScreen } from '../screens/Settings/SettingsScreen';
 import { SendScreen as SendFlowScreen } from '../screens/Send/SendScreen';
@@ -42,7 +39,7 @@ const APP_TITLE = 'Ancore Extension';
 const pageTitles: Record<string, string> = {
   '/unlock': 'Unlock Wallet',
   '/welcome': 'Welcome',
-  '/create-account': 'Create Account',
+  '/onboarding': 'Create Wallet',
   '/home': 'Home',
   '/send': 'Send',
   '/scheduled': 'Scheduled Transfers',
@@ -83,7 +80,7 @@ function RootRedirect() {
   const { authState } = useExtensionAuth();
 
   if (!authState.hasOnboarded) {
-    return <Navigate replace to="/welcome" />;
+    return <Navigate replace to="/onboarding" />;
   }
 
   return <Navigate replace to={authState.isUnlocked ? '/home' : '/unlock'} />;
@@ -194,42 +191,8 @@ function SecondaryLink({ to, children }: { to: string; children: React.ReactNode
   );
 }
 
-function WelcomeScreen() {
-  // DEMO ONBOARDING: sets hasOnboarded without vault keygen. See FREIGHTER_COMPARISON §4 P0.
-  return (
-    <PageScaffold
-      eyebrow="Extension setup"
-      title="Meet your Ancore wallet"
-      description="Create a fresh account flow for first-time users, or jump back into an existing wallet."
-    >
-      <Card
-        title="What this flow covers"
-        description="Secure setup, protected routes, and a navigation shell built for the popup experience."
-      >
-        <div className="grid gap-3 text-sm text-muted-foreground">
-          <div className="flex items-center gap-3">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span>First-time setup and unlock states stay separate.</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="h-4 w-4 text-primary" />
-            <span>Protected screens redirect automatically when the wallet is locked.</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Wallet className="h-4 w-4 text-primary" />
-            <span>Navigation works across dashboard, send, receive, history, and settings.</span>
-          </div>
-        </div>
-      </Card>
-      <div className="space-y-3">
-        <SecondaryLink to="/unlock">I already have a wallet</SecondaryLink>
-        <SecondaryLink to="/create-account">Create a wallet</SecondaryLink>
-      </div>
-    </PageScaffold>
-  );
-}
-
-function CreateAccountScreen() {
+// Demo CreateAccountScreen preserved only for local development with VITE_DEMO_ROUTER=true
+function DemoCreateAccountScreen() {
   const navigate = useNavigate();
   const { completeOnboarding } = useExtensionAuth();
   const [walletName, setWalletName] = React.useState('My Ancore Wallet');
@@ -243,9 +206,9 @@ function CreateAccountScreen() {
   return (
     <PageScaffold
       backTo="/welcome"
-      eyebrow="New wallet"
-      title="Create account"
-      description="This placeholder flow establishes a session so the protected routes can be exercised end to end."
+      eyebrow="Demo only"
+      title="Create account (demo)"
+      description="This demo path is only available in development with VITE_DEMO_ROUTER=true."
     >
       <Card title="Wallet profile" description="Pick a name for the local demo wallet session.">
         <form className="space-y-4" onSubmit={handleCreate}>
@@ -259,8 +222,7 @@ function CreateAccountScreen() {
             />
           </label>
           <PrimaryButton type="submit">
-            Create wallet
-            <ArrowRight className="ml-2 h-4 w-4" />
+            Create wallet (demo)
           </PrimaryButton>
         </form>
       </Card>
@@ -620,7 +582,7 @@ function SessionKeysScreen() {
 function NotFoundScreen() {
   const { authState } = useExtensionAuth();
   const fallbackPath = !authState.hasOnboarded
-    ? '/welcome'
+    ? '/onboarding'
     : authState.isUnlocked
       ? '/home'
       : '/unlock';
@@ -651,22 +613,27 @@ export function ExtensionRouterContent() {
       >
         <Routes>
           <Route element={<RootRedirect />} path="/" />
+          {/* /welcome redirects into the real onboarding flow */}
+          <Route path="/welcome" element={<Navigate replace to="/onboarding" />} />
           <Route
             element={
-              <PublicOnlyGuard mode="welcome">
-                <WelcomeScreen />
+              <PublicOnlyGuard mode="onboarding">
+                <OnboardingFlow />
               </PublicOnlyGuard>
             }
-            path="/welcome"
+            path="/onboarding/*"
           />
-          <Route
-            element={
-              <PublicOnlyGuard mode="create-account">
-                <CreateAccountScreen />
-              </PublicOnlyGuard>
-            }
-            path="/create-account"
-          />
+          {/* Demo create-account path — dev only, gated by VITE_DEMO_ROUTER */}
+          {import.meta.env.DEV && import.meta.env.VITE_DEMO_ROUTER === 'true' && (
+            <Route
+              element={
+                <PublicOnlyGuard mode="onboarding">
+                  <DemoCreateAccountScreen />
+                </PublicOnlyGuard>
+              }
+              path="/create-account"
+            />
+          )}
           <Route
             element={
               <PublicOnlyGuard mode="unlock">

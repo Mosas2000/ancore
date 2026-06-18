@@ -251,10 +251,11 @@ export function useOnboarding() {
           encryptedMnemonic: wallet.encryptedMnemonic,
         };
 
-        // Save to storage
+        // Save account and clear plaintext mnemonic from state
         setState((prev: OnboardingState) => ({
           ...prev,
           account,
+          mnemonic: null,
           isLoading: false,
           step: 'success',
         }));
@@ -271,6 +272,13 @@ export function useOnboarding() {
     },
     [state.mnemonic, state.password]
   );
+
+  /**
+   * Set mnemonic from an external source (import wallet path).
+   */
+  const setMnemonicForImport = useCallback((importedMnemonic: string) => {
+    setState((prev: OnboardingState) => ({ ...prev, mnemonic: importedMnemonic, step: 'deploy' }));
+  }, []);
 
   /**
    * Reset the onboarding state
@@ -307,6 +315,7 @@ export function useOnboarding() {
     checkPasswordStrength,
     encryptMnemonic,
     deployAccount,
+    setMnemonicForImport,
     reset,
     clearError,
   };

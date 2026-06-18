@@ -23,7 +23,6 @@ export default defineConfig({
       '**/node_modules/**',
       '**/*.e2e.test.{ts,tsx}',
       '**/tests/e2e/**',
-      '**/Onboarding/__tests__/**',
       '**/messaging/__tests__/messaging.test.ts',
       '**/SessionKeys/__tests__/**',
     ],
