@@ -40,3 +40,4 @@ export * from './scheduled-transfer';
 export * from './statement';
 export * from './handle-resolution';
 export * from './invoice';
+export * from './external-api';
