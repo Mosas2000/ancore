@@ -22,7 +22,10 @@ import {
 import { resolveHandle as defaultResolveHandle } from '@/services/handle-resolver';
 import type { SimulationState } from '@/screens/Send/SimulationPreview';
 import { computeMaxSendable, BASE_SEND_RESERVE, DEFAULT_SEND_FEE } from '@/utils/amount';
-
+import { useDashboardSettingsStore } from '@/state/dashboard-settings';
+import { createProductionSendService } from '@/services/send-service';
+import { createStellarClient } from '@ancore/stellar';
+import { useAccountStore } from '@/stores/account';
 export type SendStep = 'form' | 'review' | 'confirm' | 'status' | 'scheduled';
 export type TxStatus = 'idle' | 'pending' | 'confirmed' | 'failed';
 export type TransferPolicyAction = 'allow' | 'step_up' | 'block';
@@ -80,6 +83,7 @@ export interface UseSendTransactionOptions {
   transferStepUpThreshold?: number;
   todayTransferTotal?: number;
   accountAddress?: string;
+  isContractAccount?: boolean;
   schedulerClient?: SchedulerClient;
 }
 
@@ -108,38 +112,6 @@ const HANDLE_NOT_FOUND_MESSAGE = 'Handle not found';
 
 function isHandleInput(value: string): boolean {
   return value.trim().startsWith('@');
-}
-
-function createDefaultService(
-  schedulerClient: SchedulerClient,
-  accountAddress: string
-): SendService {
-  return {
-    estimateFee: async () => ({
-      baseFee: '0.0000100',
-      totalFee: '0.0000100',
-      network: 'testnet',
-    }),
-    authenticatePassword: async (password: string) => password === 'wallet-password',
-    signTransaction: async (tx: SendTransactionDraft) =>
-      `signed:${tx.to}:${tx.amount}:${Date.now()}`,
-    submitTransaction: async () => ({ txId: `tx_${Date.now()}` }),
-    fetchTransactionStatus: async () => 'confirmed',
-    resolveHandle: defaultResolveHandle,
-    createScheduledTransfer: async (tx, schedule) =>
-      schedulerClient.createScheduledTransfer({
-        accountAddress,
-        to: tx.to,
-        amount: tx.amount,
-        asset: 'XLM',
-        frequency: schedule.frequency,
-        startAt: toIsoStartAt(schedule.startAt),
-        endAt: schedule.endAt ? toIsoStartAt(schedule.endAt) : undefined,
-        note: tx.truncatedNote,
-        userApproved: true,
-        relayPayload: buildDefaultRelayPayload(tx.to, tx.amount),
-      }),
-  };
 }
 
 export function validateRecipientAddress(value: string): string | undefined {
@@ -194,14 +166,34 @@ export function useSendTransaction(options: UseSendTransactionOptions = {}) {
   const dailyTransferLimit = options.dailyTransferLimit ?? DEFAULT_DAILY_LIMIT;
   const transferStepUpThreshold = options.transferStepUpThreshold ?? DEFAULT_STEP_UP_THRESHOLD;
   const todayTransferTotal = options.todayTransferTotal ?? 0;
-  const accountAddress = options.accountAddress ?? DEMO_ACCOUNT_ADDRESS;
+
+  const activeAccountId = useAccountStore((state) => state.activeAccountId);
+  const accounts = useAccountStore((state) => state.accounts);
+  const activeAccount = useMemo(
+    () => accounts.find((a) => a.id === activeAccountId),
+    [accounts, activeAccountId]
+  );
+
+  const accountAddress = options.accountAddress ?? activeAccount?.address ?? DEMO_ACCOUNT_ADDRESS;
+  const isContractAccount = options.isContractAccount ?? accountAddress.startsWith('C');
   const schedulerClient = useMemo(
     () => options.schedulerClient ?? getExtensionSchedulerClient(),
     [options.schedulerClient]
   );
+  const network = useDashboardSettingsStore((state) => state.network);
+  const environment = useDashboardSettingsStore((state) => state.environment);
+  const stellarClient = useMemo(() => createStellarClient(network), [network]);
+
   const service = useMemo(
-    () => options.service ?? createDefaultService(schedulerClient, accountAddress),
-    [accountAddress, options.service, schedulerClient]
+    () =>
+      options.service ??
+      createProductionSendService({
+        stellarClient,
+        accountAddress,
+        environment,
+        isContractAccount,
+      }),
+    [accountAddress, environment, isContractAccount, options.service, stellarClient]
   );
 
   const [step, setStep] = useState<SendStep>('form');

@@ -511,7 +511,8 @@ export class StellarClient {
    * @throws NetworkError if the network request fails
    */
   async submitTransaction(
-    transaction: Transaction | string
+    transaction: Transaction | string,
+    options?: { retryOptions?: RetryOptions }
   ): Promise<Horizon.HorizonApi.SubmitTransactionResponse> {
     let signedTransaction: Transaction;
     try {
@@ -522,9 +523,12 @@ export class StellarClient {
       });
     }
 
-    const callerIsRetryable = this.retryOptions.isRetryable;
+    const callerIsRetryable = options?.retryOptions?.isRetryable ?? this.retryOptions.isRetryable;
     const retryOptions: RetryOptions = {
+      maxRetries: 4, // 5 attempts total
+      exponential: true,
       ...this.retryOptions,
+      ...options?.retryOptions,
       isRetryable: (error) => {
         if (error instanceof TransactionError) {
           return false;
