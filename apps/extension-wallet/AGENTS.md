@@ -205,3 +205,55 @@ Manual checks for security-sensitive PRs:
 | `@ancore/account-abstraction` | Smart account client, session keys, tx builder |
 | `@ancore/types`               | Shared wallet/network types                    |
 | `@ancore/ui-kit`              | Shared React components                        |
+
+## Internationalization (i18n)
+
+The extension uses [react-i18next](https://react.i18next.com/) with a single English locale today.
+
+| Path | Purpose |
+|------|---------|
+| `src/i18n/index.ts` | Initializes i18next with the `en` namespace |
+| `src/i18n/en.json` | English strings, grouped by screen (e.g. `settings`, `send`) |
+| `src/i18n/settings-labels.ts` | Helpers for enum-backed labels (network, theme, auto-lock) |
+| `scripts/lint-translations.mjs` | CI/local guard for missing keys |
+
+Initialization runs from `src/popup/main.tsx` (production popup entry) and `src/main.tsx` (local dev).
+
+### Conventions
+
+1. **Screen namespaces** — Top-level keys match screens or flows: `settings.title`, `send.amountLabel`, `onboarding.welcome`.
+2. **Use `t('namespace.key')`** — Prefer static string keys in JSX. Avoid hardcoded user-visible English in components.
+3. **Interpolation** — Use i18next placeholders for dynamic copy: `t('settings.network.currentlyOn', { network })`.
+4. **Enum labels** — Put switch-based helpers next to the locale file (see `settings-labels.ts`) so every key stays explicit and discoverable.
+5. **Sub-screens** — When migrating a flow, add keys under that screen namespace before replacing literals. `SettingsScreen` is the reference implementation.
+
+### Adding strings
+
+1. Add the key to `src/i18n/en.json` under the correct screen namespace.
+2. Replace the JSX literal with `const { t } = useTranslation()` and `t('screen.key')`.
+3. Run `pnpm lint:translations` from `apps/extension-wallet` (or the repo root via `pnpm --filter @ancore/extension-wallet lint:translations`).
+
+### Translation lint
+
+```bash
+pnpm lint:translations
+```
+
+The script scans `src/**/*.ts(x)` for static `t('...')` calls and fails if any key is missing from `en.json`. It also blocks new hardcoded user-visible literals in **i18n-enforced files**:
+
+- `src/screens/Settings/SettingsScreen.tsx`
+- `src/i18n/settings-labels.ts`
+
+Add a file to `I18N_ENFORCED_FILES` in `scripts/lint-translations.mjs` once it is fully migrated. CI runs this in the **Extension Translation Lint** job on every PR.
+
+### Visual regression
+
+The smoke e2e suite includes a settings-screen check (`tests/e2e/smoke.spec.ts`) that asserts i18n strings render in the browser. A Playwright screenshot baseline lives at `tests/e2e/smoke.spec.ts-snapshots/settings-header-chromium-darwin.png` for local layout checks (`maxDiffPixelRatio: 0.02`). Screenshot comparison is skipped in CI because platform font rendering differs; CI relies on the text assertions instead.
+
+### Out of scope (for now)
+
+- Portuguese (`pt.json`) and multi-locale completeness checks
+- RTL layout
+- Advanced pluralization beyond basic `{{count}}` interpolation
+
+When LatAm localization starts, add `src/i18n/pt.json` and extend the lint script to require parity with `en.json`.

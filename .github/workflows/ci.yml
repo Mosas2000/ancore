@@ -34,9 +34,28 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
 
+  lint-translations:
+    name: Extension Translation Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lint extension translation keys
+        run: pnpm --filter @ancore/extension-wallet lint:translations
+
   package:
     name: Package — ${{ matrix.name }}
-    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
