@@ -11,52 +11,52 @@ const BRAVO_ADDRESS = 'GDQP2KPQGKIHYJGXNUIYOMHARUARCA7DJT5FO2FFOOKY3B2WSQHG4W37'
  * Full flow unblocks after #764 (real vault unlock).
  */
 test.describe('send', () => {
-  test.skip(
-    'unlock → fill send form → mock Horizon submit → tx hash shown in history',
-    async ({ context, extensionUrl }) => {
-      // TODO: unblocks after #764
-      const page = await context.newPage();
+  test.skip('unlock → fill send form → mock Horizon submit → tx hash shown in history', async ({
+    context,
+    extensionUrl,
+  }) => {
+    // TODO: unblocks after #764
+    const page = await context.newPage();
 
-      // Mock Horizon transaction submission
-      await page.route('**/transactions', (route) => {
-        void route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: JSON.stringify({
-            hash: 'aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899',
-            successful: true,
-          }),
-        });
+    // Mock Horizon transaction submission
+    await page.route('**/transactions', (route) => {
+      void route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          hash: 'aabbccddeeff00112233445566778899aabbccddeeff00112233445566778899',
+          successful: true,
+        }),
       });
+    });
 
-      await page.goto(extensionUrl('index.html'));
+    await page.goto(extensionUrl('index.html'));
 
-      // Unlock wallet (depends on #764 for real vault state)
-      await page.getByLabel(/password/i).fill('TestPassword123!');
-      await page.getByRole('button', { name: /unlock/i }).click();
-      await page.waitForSelector('[data-testid="home-screen"]');
+    // Unlock wallet (depends on #764 for real vault state)
+    await page.getByLabel(/password/i).fill('TestPassword123!');
+    await page.getByRole('button', { name: /unlock/i }).click();
+    await page.waitForSelector('[data-testid="home-screen"]');
 
-      const send = new SendPage(page);
-      await send.navigate();
-      await send.fillDestination(BRAVO_ADDRESS);
-      await send.fillAmount('1');
-      await send.submit();
-      await send.confirm();
-      await send.waitForSuccess();
+    const send = new SendPage(page);
+    await send.navigate();
+    await send.fillDestination(BRAVO_ADDRESS);
+    await send.fillAmount('1');
+    await send.submit();
+    await send.confirm();
+    await send.waitForSuccess();
 
-      const txHash = send.getTxHashLocator();
-      await expect(txHash).toBeVisible();
-      const hash = await txHash.innerText();
-      expect(hash).toHaveLength(64);
+    const txHash = send.getTxHashLocator();
+    await expect(txHash).toBeVisible();
+    const hash = await txHash.innerText();
+    expect(hash).toHaveLength(64);
 
-      // Verify it appears in history
-      const history = new HistoryPage(page);
-      await history.navigate();
-      await history.waitForAtLeastOne();
-      const firstHash = await history.getFirstTxHash();
-      expect(firstHash).toBe(hash);
-    },
-  );
+    // Verify it appears in history
+    const history = new HistoryPage(page);
+    await history.navigate();
+    await history.waitForAtLeastOne();
+    const firstHash = await history.getFirstTxHash();
+    expect(firstHash).toBe(hash);
+  });
 
   test.skip('send form rejects invalid Stellar address', async ({ context, extensionUrl }) => {
     // TODO: unblocks after #764

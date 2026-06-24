@@ -110,7 +110,10 @@ export function SimulationPreview({ simulation }: SimulationPreviewProps) {
             Auth Entries ({authEntries.length})
           </span>
           {authEntries.map((entry, index) => (
-            <div key={`${entry.slice(0, 8)}-${index}`} className="font-mono text-[10px] text-slate-400 break-all">
+            <div
+              key={`${entry.slice(0, 8)}-${index}`}
+              className="font-mono text-[10px] text-slate-400 break-all"
+            >
               {truncateValue(entry, 48)}
             </div>
           ))}

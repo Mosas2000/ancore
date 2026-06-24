@@ -176,7 +176,10 @@ export function ReviewScreen({
             <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
               Total to Debit
             </span>
-            <span className="text-cyan-400 font-mono text-base font-black" data-testid="review-total">
+            <span
+              className="text-cyan-400 font-mono text-base font-black"
+              data-testid="review-total"
+            >
               {displayTotal} XLM
             </span>
           </div>

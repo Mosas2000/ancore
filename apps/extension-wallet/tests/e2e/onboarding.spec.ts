@@ -62,68 +62,68 @@ test.describe('Onboarding flow', () => {
 
   // ── Real-artifact tests (unblock after #764 + #768) ───────────────────────
 
-  test.skip(
-    'create wallet — mnemonic revealed + verified + password set → home screen (real artifact)',
-    async ({ extensionContext, extensionUrl }) => {
-      // TODO: unblocks after #764 + #768
-      const page = await extensionContext.newPage();
-      await page.goto(extensionUrl('index.html'));
-      const onboarding = new OnboardingPage(page);
+  test.skip('create wallet — mnemonic revealed + verified + password set → home screen (real artifact)', async ({
+    extensionContext,
+    extensionUrl,
+  }) => {
+    // TODO: unblocks after #764 + #768
+    const page = await extensionContext.newPage();
+    await page.goto(extensionUrl('index.html'));
+    const onboarding = new OnboardingPage(page);
 
-      await onboarding.selectCreateWallet();
-      const wordEls = onboarding.getMnemonicWords();
-      const words: string[] = [];
-      for (const el of await wordEls.all()) {
-        words.push((await el.innerText()).trim());
-      }
-      expect(words).toHaveLength(12);
+    await onboarding.selectCreateWallet();
+    const wordEls = onboarding.getMnemonicWords();
+    const words: string[] = [];
+    for (const el of await wordEls.all()) {
+      words.push((await el.innerText()).trim());
+    }
+    expect(words).toHaveLength(12);
 
-      await page.getByRole('button', { name: /i.*saved|continue/i }).click();
-      for (let i = 0; i < words.length; i++) {
-        await onboarding.confirmMnemonicWord(i, words[i]);
-      }
-      await page.getByRole('button', { name: /verify|confirm/i }).click();
+    await page.getByRole('button', { name: /i.*saved|continue/i }).click();
+    for (let i = 0; i < words.length; i++) {
+      await onboarding.confirmMnemonicWord(i, words[i]);
+    }
+    await page.getByRole('button', { name: /verify|confirm/i }).click();
 
-      await onboarding.enterPassword(TEST_PASSWORD);
-      await onboarding.confirmPassword(TEST_PASSWORD);
-      await onboarding.submitPassword();
-      await onboarding.waitForHome();
-      await expect(page.getByTestId('home-screen')).toBeVisible();
-    },
-  );
+    await onboarding.enterPassword(TEST_PASSWORD);
+    await onboarding.confirmPassword(TEST_PASSWORD);
+    await onboarding.submitPassword();
+    await onboarding.waitForHome();
+    await expect(page.getByTestId('home-screen')).toBeVisible();
+  });
 
-  test.skip(
-    'import wallet — ALPHA mnemonic + password → home screen (real artifact)',
-    async ({ extensionContext, extensionUrl }) => {
-      // TODO: unblocks after #764
-      const page = await extensionContext.newPage();
-      await page.goto(extensionUrl('index.html'));
-      const onboarding = new OnboardingPage(page);
+  test.skip('import wallet — ALPHA mnemonic + password → home screen (real artifact)', async ({
+    extensionContext,
+    extensionUrl,
+  }) => {
+    // TODO: unblocks after #764
+    const page = await extensionContext.newPage();
+    await page.goto(extensionUrl('index.html'));
+    const onboarding = new OnboardingPage(page);
 
-      await onboarding.selectImportWallet();
-      await onboarding.enterMnemonic(TEST_MNEMONICS.ALPHA);
-      await page.getByRole('button', { name: /next|continue/i }).click();
-      await onboarding.enterPassword(TEST_PASSWORD);
-      await onboarding.confirmPassword(TEST_PASSWORD);
-      await onboarding.submitPassword();
-      await onboarding.waitForHome();
-      await expect(page.getByTestId('home-screen')).toBeVisible();
-    },
-  );
+    await onboarding.selectImportWallet();
+    await onboarding.enterMnemonic(TEST_MNEMONICS.ALPHA);
+    await page.getByRole('button', { name: /next|continue/i }).click();
+    await onboarding.enterPassword(TEST_PASSWORD);
+    await onboarding.confirmPassword(TEST_PASSWORD);
+    await onboarding.submitPassword();
+    await onboarding.waitForHome();
+    await expect(page.getByTestId('home-screen')).toBeVisible();
+  });
 
-  test.skip(
-    'onboarding rejects mismatched mnemonic confirmation (real artifact)',
-    async ({ extensionContext, extensionUrl }) => {
-      // TODO: unblocks after #764
-      const page = await extensionContext.newPage();
-      await page.goto(extensionUrl('index.html'));
-      const onboarding = new OnboardingPage(page);
+  test.skip('onboarding rejects mismatched mnemonic confirmation (real artifact)', async ({
+    extensionContext,
+    extensionUrl,
+  }) => {
+    // TODO: unblocks after #764
+    const page = await extensionContext.newPage();
+    await page.goto(extensionUrl('index.html'));
+    const onboarding = new OnboardingPage(page);
 
-      await onboarding.selectCreateWallet();
-      await page.getByRole('button', { name: /i.*saved|continue/i }).click();
-      await onboarding.confirmMnemonicWord(0, 'wrong');
-      await page.getByRole('button', { name: /verify|confirm/i }).click();
-      await expect(page.getByRole('alert')).toBeVisible();
-    },
-  );
+    await onboarding.selectCreateWallet();
+    await page.getByRole('button', { name: /i.*saved|continue/i }).click();
+    await onboarding.confirmMnemonicWord(0, 'wrong');
+    await page.getByRole('button', { name: /verify|confirm/i }).click();
+    await expect(page.getByRole('alert')).toBeVisible();
+  });
 });

@@ -23,7 +23,10 @@ export class OnboardingPage {
   }
 
   async enterPassword(password: string) {
-    await this.page.getByLabel(/password/i).first().fill(password);
+    await this.page
+      .getByLabel(/password/i)
+      .first()
+      .fill(password);
   }
 
   async confirmPassword(password: string) {

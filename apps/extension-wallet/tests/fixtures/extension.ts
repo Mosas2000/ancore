@@ -44,7 +44,7 @@ export const test = base.extend<ExtensionFixtures>({
         ([key, value]) => {
           localStorage.setItem(key, JSON.stringify(value));
         },
-        [AUTH_KEY, AUTH_PRESETS[state]] as [string, object],
+        [AUTH_KEY, AUTH_PRESETS[state]] as [string, object]
       );
     });
   },
@@ -100,15 +100,15 @@ export const test = base.extend<ExtensionFixtures>({
     }
     if (!extensionId) {
       throw new Error(
-        'Could not detect extension ID. Make sure the extension is built (`pnpm build`).',
+        'Could not detect extension ID. Make sure the extension is built (`pnpm build`).'
       );
     }
     await use(extensionId);
   },
 
   extensionUrl: async ({ extensionId }, use) => {
-    await use((pagePath: string) =>
-      `chrome-extension://${extensionId}/${pagePath.replace(/^\//, '')}`,
+    await use(
+      (pagePath: string) => `chrome-extension://${extensionId}/${pagePath.replace(/^\//, '')}`
     );
   },
 });

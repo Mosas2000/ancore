@@ -137,9 +137,13 @@ export function createProductionSendService(options: ProductionSendServiceOption
 
     async simulateTransaction(tx: SendTransactionDraft): Promise<UiSimulationResult> {
       const unsignedXdr = await buildPaymentXdr(tx);
-      const result = await simulateSorobanTransaction(unsignedXdr, stellarClient.getNetwork() as StellarNetwork, {
-        client: stellarClient,
-      });
+      const result = await simulateSorobanTransaction(
+        unsignedXdr,
+        stellarClient.getNetwork() as StellarNetwork,
+        {
+          client: stellarClient,
+        }
+      );
 
       if (result.error) {
         return {

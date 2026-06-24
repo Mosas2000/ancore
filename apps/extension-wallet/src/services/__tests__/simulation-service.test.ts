@@ -1,11 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import {
-  Account,
-  Asset,
-  Networks,
-  Operation,
-  TransactionBuilder,
-} from '@stellar/stellar-sdk';
+import { Account, Asset, Networks, Operation, TransactionBuilder } from '@stellar/stellar-sdk';
 import { simulateTransaction } from '../simulation-service';
 
 const SOURCE = 'GBBM6BKZPEHWYO3E3YKREDPQXMS4VK35YLNU7NFBRI26RAN7GI5POFBB';

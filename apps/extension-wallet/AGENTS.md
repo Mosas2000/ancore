@@ -210,12 +210,12 @@ Manual checks for security-sensitive PRs:
 
 The extension uses [react-i18next](https://react.i18next.com/) with a single English locale today.
 
-| Path | Purpose |
-|------|---------|
-| `src/i18n/index.ts` | Initializes i18next with the `en` namespace |
-| `src/i18n/en.json` | English strings, grouped by screen (e.g. `settings`, `send`) |
-| `src/i18n/settings-labels.ts` | Helpers for enum-backed labels (network, theme, auto-lock) |
-| `scripts/lint-translations.mjs` | CI/local guard for missing keys |
+| Path                            | Purpose                                                      |
+| ------------------------------- | ------------------------------------------------------------ |
+| `src/i18n/index.ts`             | Initializes i18next with the `en` namespace                  |
+| `src/i18n/en.json`              | English strings, grouped by screen (e.g. `settings`, `send`) |
+| `src/i18n/settings-labels.ts`   | Helpers for enum-backed labels (network, theme, auto-lock)   |
+| `scripts/lint-translations.mjs` | CI/local guard for missing keys                              |
 
 Initialization runs from `src/popup/main.tsx` (production popup entry) and `src/main.tsx` (local dev).
 
